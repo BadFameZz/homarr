@@ -254,7 +254,7 @@ pct exec $CTID -- bash -c "cat > /opt/homarr/docker-compose.yml <<EOF
 version: '3.3'
 services:
   homarr:
-    image: ghcr.io/ajnart/homarr:1.0
+    image: ghcr.io/ajnart/homarr:latest
     container_name: homarr
     restart: unless-stopped
     ports:
