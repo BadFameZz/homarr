@@ -48,11 +48,36 @@ get_network_config() {
   IP="$IP/24"
 }
 
+# Funktion zur Auswahl des Speichermediums
+select_storage() {
+  # Liste der verfügbaren Speichermedien ermitteln
+  storage_list=$(pvesm status | awk 'NR>1 {print $1}')
+  if [[ -z "$storage_list" ]]; then
+    echo "Fehler: Keine Speichermedien gefunden."
+    exit 1
+  fi
+
+  # Speichermedien in ein Array speichern
+  storage_options=()
+  while IFS= read -r line; do
+    storage_options+=("$line" "")
+  done <<< "$storage_list"
+
+  # Auswahlbox anzeigen
+  STORAGE=$(whiptail --title "Speichermedium auswählen" --menu \
+    "Wählen Sie das Speichermedium für den Container aus:" 15 40 5 \
+    "${storage_options[@]}" 3>&1 1>&2 2>&3)
+
+  if [[ -z "$STORAGE" ]]; then
+    echo "Fehler: Kein Speichermedium ausgewählt."
+    exit 1
+  fi
+}
+
 # Funktion zur Eingabe der Konfiguration über eine grafische Oberfläche
 get_configuration() {
   HOSTNAME=$(whiptail --inputbox "Geben Sie den Hostnamen des Containers ein:" 8 40 "homarr-container" 3>&1 1>&2 2>&3)
   PASSWORD=$(whiptail --passwordbox "Geben Sie das Root-Passwort für den Container ein:" 8 40 3>&1 1>&2 2>&3)
-  STORAGE=$(whiptail --inputbox "Geben Sie den Speicherort des Containers ein (z.B. local-lvm):" 8 40 "local-lvm" 3>&1 1>&2 2>&3)
   CORES=$(whiptail --inputbox "Geben Sie die Anzahl der CPU-Kerne ein:" 8 40 "1" 3>&1 1>&2 2>&3)
   MEMORY=$(whiptail --inputbox "Geben Sie den RAM-Speicher in MB ein:" 8 40 "512" 3>&1 1>&2 2>&3)
   DISK=$(whiptail --inputbox "Geben Sie den Disk-Speicher in GB ein:" 8 40 "4" 3>&1 1>&2 2>&3)
@@ -66,6 +91,9 @@ fi
 
 # Netzwerkkonfiguration automatisch ermitteln
 get_network_config
+
+# Speichermedium auswählen
+select_storage
 
 # Konfiguration abfragen
 get_configuration
