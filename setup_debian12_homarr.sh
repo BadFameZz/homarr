@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Kopfzeile mit deinem Tag-Namen
+echo "============================================"
+echo "  Homarr Installationsskript von BadFameZz  "
+echo "============================================"
+echo ""
+
 # Funktion zur Anzeige eines Fortschrittsbalkens
 progress() {
   local current=$1
@@ -10,17 +16,25 @@ progress() {
   local filled=$((current * width / total))
   local empty=$((width - filled))
 
-  printf "\r["
+  # Fortschrittsbalken mit Farben
+  printf "\r\e[32m["
   printf "%${filled}s" | tr ' ' '='
   printf "%${empty}s" | tr ' ' ' '
-  printf "] %3d%% %s" "$percent" "$message"
+  printf "]\e[0m %3d%% \e[34m%s\e[0m" "$percent" "$message"
 }
 
 # Funktion zur Ermittlung der nächsten verfügbaren Container-ID
 get_next_ctid() {
+  # Liste aller vorhandenen Container-IDs
   existing_ctids=$(pct list | awk 'NR>1 {print $1}')
+  
+  # Liste aller vorhandenen VM-IDs
+  existing_vmids=$(qm list | awk 'NR>1 {print $1}')
+
+  # Starte bei CTID 100 und suche die nächste freie ID
   ctid=100
-  while [[ $existing_ctids =~ (^|[[:space:]])$ctid($|[[:space:]]) ]]; do
+  while [[ $existing_ctids =~ (^|[[:space:]])$ctid($|[[:space:]]) || \
+        $existing_vmids =~ (^|[[:space:]])$ctid($|[[:space:]]) ]]; do
     ctid=$((ctid + 1))
   done
   echo $ctid
@@ -257,6 +271,9 @@ echo "Starte Homarr..."
 pct exec $CTID -- bash -c "cd /opt/homarr && docker-compose up -d"
 
 # Abschluss
-echo "Installation abgeschlossen!"
-echo "Container-ID: $CTID"
-echo "Du kannst jetzt auf Homarr zugreifen unter: http://$(echo $IP | cut -d'/' -f1):7575"
+echo "============================================"
+echo "  Installation abgeschlossen! 🎉            "
+echo "  Homarr wurde erfolgreich installiert.     "
+echo "  Container-ID: $CTID                       "
+echo "  Zugriff unter: http://$(echo $IP | cut -d'/' -f1):7575"
+echo "============================================"
