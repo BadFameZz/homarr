@@ -2,10 +2,7 @@
 
 # Funktion zur Ermittlung der nächsten verfügbaren Container-ID
 get_next_ctid() {
-  # Liste aller vorhandenen Container-IDs
   existing_ctids=$(pct list | awk 'NR>1 {print $1}')
-  
-  # Starte bei CTID 100 und suche die nächste freie ID
   ctid=100
   while [[ $existing_ctids =~ (^|[[:space:]])$ctid($|[[:space:]]) ]]; do
     ctid=$((ctid + 1))
@@ -13,18 +10,71 @@ get_next_ctid() {
   echo $ctid
 }
 
-# Variablen
-CTID=$(get_next_ctid)  # Automatisch nächste verfügbare CTID ermitteln
-HOSTNAME="homarr-container"
-PASSWORD="securepassword"  # Setze ein sicheres Passwort
-IP="192.168.1.100/24"  # Statische IP (ändere dies entsprechend deinem Netzwerk)
-GATEWAY="192.168.1.1"  # Gateway (ändere dies entsprechend deinem Netzwerk)
-STORAGE="local-lvm"  # Speicherort (ändere dies, falls notwendig)
-CORES="1"  # Anzahl der CPU-Kerne
-MEMORY="512"  # RAM in MB
-DISK="4"  # Disk-Speicher in GB
+# Funktion zum Herunterladen der Debian 12-Vorlage
+download_debian12_template() {
+  template_path="/var/lib/vz/template/cache/debian-12-standard_12.0-1_amd64.tar.zst"
+  if [[ ! -f "$template_path" ]]; then
+    echo "Debian 12-Vorlage nicht gefunden. Lade sie herunter..."
+    wget http://download.proxmox.com/images/system/debian-12-standard_12.0-1_amd64.tar.zst -P /var/lib/vz/template/cache/
+    if [[ $? -ne 0 ]]; then
+      echo "Fehler beim Herunterladen der Debian 12-Vorlage. Bitte überprüfe deine Internetverbindung."
+      exit 1
+    fi
+    echo "Debian 12-Vorlage erfolgreich heruntergeladen."
+  else
+    echo "Debian 12-Vorlage ist bereits vorhanden."
+  fi
+}
+
+# Funktion zur automatischen Ermittlung von IP und Gateway
+get_network_config() {
+  # Ermittle das Standard-Gateway
+  GATEWAY=$(ip route | grep default | awk '{print $3}')
+  if [[ -z "$GATEWAY" ]]; then
+    echo "Fehler: Gateway konnte nicht ermittelt werden."
+    exit 1
+  fi
+
+  # Ermittle das Netzwerk-Interface und die IP-Adresse
+  INTERFACE=$(ip route | grep default | awk '{print $5}')
+  HOST_IP=$(ip addr show $INTERFACE | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)
+  NETWORK=$(ip route | grep $INTERFACE | grep -v default | awk '{print $1}')
+
+  # Generiere eine verfügbare IP-Adresse im Netzwerk
+  IP=$(echo $HOST_IP | cut -d'.' -f1-3).$(($(echo $HOST_IP | cut -d'.' -f4) + 1))
+  while ping -c 1 -W 1 $IP &> /dev/null; do
+    IP=$(echo $IP | cut -d'.' -f1-3).$(($(echo $IP | cut -d'.' -f4) + 1))
+  done
+  IP="$IP/24"
+}
+
+# Funktion zur Eingabe der Konfiguration über eine grafische Oberfläche
+get_configuration() {
+  HOSTNAME=$(whiptail --inputbox "Geben Sie den Hostnamen des Containers ein:" 8 40 "homarr-container" 3>&1 1>&2 2>&3)
+  PASSWORD=$(whiptail --passwordbox "Geben Sie das Root-Passwort für den Container ein:" 8 40 3>&1 1>&2 2>&3)
+  STORAGE=$(whiptail --inputbox "Geben Sie den Speicherort des Containers ein (z.B. local-lvm):" 8 40 "local-lvm" 3>&1 1>&2 2>&3)
+  CORES=$(whiptail --inputbox "Geben Sie die Anzahl der CPU-Kerne ein:" 8 40 "1" 3>&1 1>&2 2>&3)
+  MEMORY=$(whiptail --inputbox "Geben Sie den RAM-Speicher in MB ein:" 8 40 "512" 3>&1 1>&2 2>&3)
+  DISK=$(whiptail --inputbox "Geben Sie den Disk-Speicher in GB ein:" 8 40 "4" 3>&1 1>&2 2>&3)
+}
+
+# Hauptskript
+if ! command -v whiptail &> /dev/null; then
+  echo "whiptail ist nicht installiert. Bitte installiere es mit 'apt install whiptail'."
+  exit 1
+fi
+
+# Netzwerkkonfiguration automatisch ermitteln
+get_network_config
+
+# Konfiguration abfragen
+get_configuration
+
+# Debian 12-Vorlage herunterladen (falls nicht vorhanden)
+download_debian12_template
 
 # Debian 12 LXC-Container erstellen
+CTID=$(get_next_ctid)
 echo "Erstelle Debian 12 LXC-Container mit CTID $CTID..."
 pct create $CTID /var/lib/vz/template/cache/debian-12-standard_12.0-1_amd64.tar.zst \
   --hostname $HOSTNAME \
