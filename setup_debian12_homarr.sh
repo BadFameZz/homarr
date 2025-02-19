@@ -78,11 +78,11 @@ select_storage() {
 select_cores() {
   CORES=$(whiptail --title "CPU-Kerne auswählen" --menu \
     "Wählen Sie die Anzahl der CPU-Kerne aus:" 15 40 5 \
-    "1" "" \
-    "2" "" \
-    "4" "" \
-    "8" "" \
-    "16" "" 3>&1 1>&2 2>&3)
+    "1" "1 CPU-Kern" \
+    "2" "2 CPU-Kerne" \
+    "4" "4 CPU-Kerne" \
+    "8" "8 CPU-Kerne" \
+    "16" "16 CPU-Kerne" 3>&1 1>&2 2>&3)
 
   if [[ -z "$CORES" ]]; then
     echo "Fehler: Keine CPU-Kerne ausgewählt."
@@ -94,11 +94,11 @@ select_cores() {
 select_memory() {
   MEMORY=$(whiptail --title "RAM-Speicher auswählen" --menu \
     "Wählen Sie den RAM-Speicher in MB aus:" 15 40 5 \
-    "512" "" \
-    "1024" "" \
-    "2048" "" \
-    "4096" "" \
-    "8192" "" 3>&1 1>&2 2>&3)
+    "512" "512 MB" \
+    "1024" "1 GB" \
+    "2048" "2 GB" \
+    "4096" "4 GB" \
+    "8192" "8 GB" 3>&1 1>&2 2>&3)
 
   if [[ -z "$MEMORY" ]]; then
     echo "Fehler: Kein RAM-Speicher ausgewählt."
