@@ -74,12 +74,42 @@ select_storage() {
   fi
 }
 
+# Funktion zur Auswahl der CPU-Kerne
+select_cores() {
+  CORES=$(whiptail --title "CPU-Kerne auswählen" --menu \
+    "Wählen Sie die Anzahl der CPU-Kerne aus:" 15 40 5 \
+    "1" "" \
+    "2" "" \
+    "4" "" \
+    "8" "" \
+    "16" "" 3>&1 1>&2 2>&3)
+
+  if [[ -z "$CORES" ]]; then
+    echo "Fehler: Keine CPU-Kerne ausgewählt."
+    exit 1
+  fi
+}
+
+# Funktion zur Auswahl des RAM-Speichers
+select_memory() {
+  MEMORY=$(whiptail --title "RAM-Speicher auswählen" --menu \
+    "Wählen Sie den RAM-Speicher in MB aus:" 15 40 5 \
+    "512" "" \
+    "1024" "" \
+    "2048" "" \
+    "4096" "" \
+    "8192" "" 3>&1 1>&2 2>&3)
+
+  if [[ -z "$MEMORY" ]]; then
+    echo "Fehler: Kein RAM-Speicher ausgewählt."
+    exit 1
+  fi
+}
+
 # Funktion zur Eingabe der Konfiguration über eine grafische Oberfläche
 get_configuration() {
   HOSTNAME=$(whiptail --inputbox "Geben Sie den Hostnamen des Containers ein:" 8 40 "homarr-container" 3>&1 1>&2 2>&3)
   PASSWORD=$(whiptail --passwordbox "Geben Sie das Root-Passwort für den Container ein:" 8 40 3>&1 1>&2 2>&3)
-  CORES=$(whiptail --inputbox "Geben Sie die Anzahl der CPU-Kerne ein:" 8 40 "1" 3>&1 1>&2 2>&3)
-  MEMORY=$(whiptail --inputbox "Geben Sie den RAM-Speicher in MB ein:" 8 40 "512" 3>&1 1>&2 2>&3)
   DISK=$(whiptail --inputbox "Geben Sie den Disk-Speicher in GB ein:" 8 40 "4" 3>&1 1>&2 2>&3)
 }
 
@@ -94,6 +124,12 @@ get_network_config
 
 # Speichermedium auswählen
 select_storage
+
+# CPU-Kerne auswählen
+select_cores
+
+# RAM-Speicher auswählen
+select_memory
 
 # Konfiguration abfragen
 get_configuration
